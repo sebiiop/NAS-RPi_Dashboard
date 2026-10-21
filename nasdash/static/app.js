@@ -616,7 +616,7 @@
     $("subline").textContent = [sys.model, sys.uptime_s != null ? `up ${duration(sys.uptime_s)}` : null].filter(Boolean).join(" · ");
     $("authBanner").hidden = s.auth_enabled;
     $("mockBanner").hidden = !s.mock;
-    $("version").textContent = `nasdash ${s.version} · written by Claude, an AI model by Anthropic`;
+    $("version").textContent = `nasdash ${s.version}`;
 
     const stalled = fan.rpm === 0 && st.target >= 30;
 
