@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Log in · NAS Dashboard</title>
+<link rel="stylesheet" href="/static/style.css?v=1.2.0">
+</head>
+<body class="login-body">
+<form class="login-card" id="loginForm">
+  <svg class="fan-icon" viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">
+    <path d="M12 12C10.6 7.4 12 3.2 14.8 3.4c2.8.3 2.4 5.2-2.8 8.6z"/>
+    <path d="M12 12C10.6 7.4 12 3.2 14.8 3.4c2.8.3 2.4 5.2-2.8 8.6z" transform="rotate(120 12 12)"/>
+    <path d="M12 12C10.6 7.4 12 3.2 14.8 3.4c2.8.3 2.4 5.2-2.8 8.6z" transform="rotate(240 12 12)"/>
+    <circle cx="12" cy="12" r="2.2"/></g></svg>
+  <h1>NAS Dashboard</h1>
+  <label>Username <input name="username" autocomplete="username" value="admin" required></label>
+  <label>Password <input name="password" type="password" autocomplete="current-password" required autofocus></label>
+  <label class="check"><input type="checkbox" name="remember" checked> Keep me logged in for 30 days</label>
+  <button class="btn primary" type="submit">Log in</button>
+  <p class="login-error" id="loginError" role="alert"></p>
+</form>
+<script>
+  document.getElementById("loginForm").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const f = ev.target, btn = f.querySelector("button"), err = document.getElementById("loginError");
+    btn.disabled = true; btn.textContent = "Logging in…"; err.textContent = "";
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-NasDash": "1" },
+        body: JSON.stringify({ username: f.username.value, password: f.password.value, remember: f.remember.checked }),
+      });
+      if (res.ok) { location.href = "/"; return; }
+      err.textContent = res.status === 401 ? "Wrong username or password." : `Login failed (${res.status}).`;
+    } catch (e) {
+      err.textContent = "Can't reach the NAS.";
+    }
+    btn.disabled = false; btn.textContent = "Log in";
+    f.password.select();
+  });
+</script>
+</body>
+</html>

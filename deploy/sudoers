@@ -1,0 +1,8 @@
+# Allows the nasdash service to read SMART data, spin drives down, and power off / reboot.
+# Nothing else. Installed to /etc/sudoers.d/nasdash by install.sh.
+Cmnd_Alias NASDASH_SMART = /usr/sbin/smartctl -n standby\,3 -j -i -A -H /dev/sd[a-z], \
+                           /usr/sbin/smartctl -n standby\,3 -j -i -A -H /dev/sd[a-z][a-z], \
+                           /usr/sbin/smartctl -n standby\,3 -j -i -A -H /dev/nvme[0-9]n[0-9]
+Cmnd_Alias NASDASH_SPINDOWN = /usr/sbin/hdparm -y /dev/sd[a-z], /usr/sbin/hdparm -y /dev/sd[a-z][a-z]
+Cmnd_Alias NASDASH_POWER = /usr/bin/systemctl poweroff, /usr/bin/systemctl reboot
+nasdash ALL=(root) NOPASSWD: NASDASH_SMART, NASDASH_SPINDOWN, NASDASH_POWER

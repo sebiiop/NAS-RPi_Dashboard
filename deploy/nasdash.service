@@ -1,0 +1,23 @@
+[Unit]
+Description=NAS dashboard and EMC2101 fan controller
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=nasdash
+Group=nasdash
+# lgpio (loaded by Adafruit Blinka) writes helper files into the working
+# directory, so it must be writable: systemd creates /var/lib/nasdash for us.
+StateDirectory=nasdash
+WorkingDirectory=/var/lib/nasdash
+Environment=PYTHONPATH=/opt/nasdash
+Environment=LG_WD=/var/lib/nasdash
+ExecStart=/opt/nasdash/venv/bin/python -m nasdash --config /etc/nasdash/config.json
+Restart=always
+RestartSec=3
+# Give the service time to set the fan to its fail-safe speed on stop.
+TimeoutStopSec=15
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NAS Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2024%2024%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22%233987e5%22%3E%3Cpath%20d%3D%22M12%2012C10.6%207.4%2012%203.2%2014.8%203.4c2.8.3%202.4%205.2-2.8%208.6z%22/%3E%3Cpath%20d%3D%22M12%2012C10.6%207.4%2012%203.2%2014.8%203.4c2.8.3%202.4%205.2-2.8%208.6z%22%20transform%3D%22rotate%28120%2012%2012%29%22/%3E%3Cpath%20d%3D%22M12%2012C10.6%207.4%2012%203.2%2014.8%203.4c2.8.3%202.4%205.2-2.8%208.6z%22%20transform%3D%22rotate%28240%2012%2012%29%22/%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%222.2%22/%3E%3C/g%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/style.css?v=1.2.0">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg class="fan-icon" id="fanIcon" viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><path d="M12 12C10.6 7.4 12 3.2 14.8 3.4c2.8.3 2.4 5.2-2.8 8.6z"/><path d="M12 12C10.6 7.4 12 3.2 14.8 3.4c2.8.3 2.4 5.2-2.8 8.6z" transform="rotate(120 12 12)"/><path d="M12 12C10.6 7.4 12 3.2 14.8 3.4c2.8.3 2.4 5.2-2.8 8.6z" transform="rotate(240 12 12)"/><circle cx="12" cy="12" r="2.2"/></g></svg>
+    <div>
+      <h1 id="hostname">NAS</h1>
+      <div class="sub" id="subline">connecting…</div>
+    </div>
+  </div>
+  <div class="top-actions">
+    <span class="chip" id="connChip">●</span>
+    <a class="btn ghost" id="navBtn" href="#settings">Settings</a>
+    <button class="btn ghost" data-power="reboot">Reboot</button>
+    <button class="btn danger" data-power="shutdown">Shut down</button>
+    <button class="btn ghost" id="logoutBtn" hidden>Log out</button>
+  </div>
+</header>
+
+<div class="banner warn" id="authBanner" hidden>
+  No password is set, so anyone on your network can open this page and shut the NAS down.
+  Set one with <code>sudo nasdash-passwd</code>.
+</div>
+<div class="banner info" id="mockBanner" hidden>Mock mode: showing simulated hardware.</div>
+<div class="banner err" id="alertBanner" hidden></div>
+
+<main>
+  <div class="view" id="viewDashboard">
+  <!-- ============ system ============ -->
+  <section class="panel">
+    <div class="panel-head"><h2>System</h2></div>
+    <div class="sys-grid">
+      <dl class="kv" id="sysInfo"></dl>
+      <div>
+        <h3>Storage</h3>
+        <div class="bars" id="mountBars"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ drives ============ -->
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Drives</h2>
+      <div class="row">
+        <span class="muted" id="spindownInfo"></span>
+        <span class="muted" id="drivesPolled"></span>
+        <button class="btn ghost small" id="drivesRefresh">Refresh</button>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table class="drives">
+        <thead><tr>
+          <th>Disk</th><th>Model</th><th class="num">Size</th><th>State</th><th>Last activity</th><th class="num">Temp</th>
+          <th>Health</th><th class="num">Power-on</th><th class="num">Realloc / Pending</th><th></th>
+        </tr></thead>
+        <tbody id="driveRows"><tr><td colspan="10" class="muted">Waiting for first reading…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ history ============ -->
+  <section class="panel">
+    <div class="panel-head">
+      <h2>History</h2>
+      <div class="seg" id="rangeSeg">
+        <button data-min="15">15 min</button>
+        <button data-min="60" class="on">1 h</button>
+        <button data-min="360">6 h</button>
+      </div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-card wide">
+        <h3 class="chart-title">Temperatures (°C)</h3>
+        <div class="legend" id="tempLegend"></div>
+        <div class="chart-wrap"><canvas id="tempChart"></canvas></div>
+      </div>
+      <div class="chart-card wide">
+        <h3 class="chart-title">Disk activity (per second)</h3>
+        <div class="legend" id="ioLegend"></div>
+        <div class="chart-wrap"><canvas id="ioChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3 class="chart-title">Fan speed (%)</h3>
+        <div class="chart-wrap short"><canvas id="fanChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3 class="chart-title">Fan RPM</h3>
+        <div class="chart-wrap short"><canvas id="rpmChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3 class="chart-title">CPU usage (%)</h3>
+        <div class="chart-wrap short"><canvas id="loadChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3 class="chart-title">Memory used (%)</h3>
+        <div class="chart-wrap short"><canvas id="memChart"></canvas></div>
+      </div>
+      <div class="chart-card wide">
+        <h3 class="chart-title">Network (per second)</h3>
+        <div class="legend" id="netLegend"></div>
+        <div class="chart-wrap short"><canvas id="netChart"></canvas></div>
+      </div>
+    </div>
+    <p class="hint" id="historyHint">Hover a chart to see exact values. History is kept in memory and starts over when the service restarts.</p>
+  </section>
+  </div>
+
+  <div class="view" id="viewSettings" hidden>
+  <div class="page-head"><a class="back" href="#">← Dashboard</a><h2 class="page-title">Settings</h2></div>
+  <!-- ============ settings ============ -->
+  <section class="panel">
+    <div class="panel-head"><h2>Controller settings</h2></div>
+    <form class="grid-form" id="ctlForm">
+      <label>Temperature source
+        <select name="source">
+          <option value="drives_max">Hottest drive</option>
+          <option value="drives_avg">Average of drives</option>
+          <option value="cpu">Pi CPU</option>
+        </select>
+      </label>
+      <label>Fan update every <span><input type="number" name="interval_s" min="1" max="60"> s</span></label>
+      <label>Read drives every <span><input type="number" name="drive_poll_s" min="10" max="3600"> s</span></label>
+      <label>Spin down hard drives after <span><input type="number" name="spindown_min" min="0" max="600"> min idle (0 = never)</span></label>
+      <label>Max change per update <span><input type="number" name="ramp_step" min="1" max="100"> %</span></label>
+      <label>Fan when all drives sleep <span><input type="number" name="idle_percent" min="0" max="100"> %</span></label>
+      <label>Fail-safe speed <span><input type="number" name="failsafe_percent" min="30" max="100"> %</span></label>
+      <label>Ignore drive readings older than <span><input type="number" name="stale_after_s" min="30" max="7200"> s</span></label>
+      <label>Keep history for <span><input type="number" name="history_hours" min="1" max="24"> h</span></label>
+      <div class="form-actions"><button class="btn primary" type="submit">Save settings</button></div>
+    </form>
+    <p class="hint">Spin-down: a hard drive is put to sleep once nothing has read from or written to it for this long (0 = never; SSDs are never touched).
+      Very short times wear the drives, because each spin-up counts against their start/stop rating; 20–30 min is a good value.
+      The dashboard's own SMART reads don't count as activity and never wake a sleeping drive.</p>
+  </section>
+
+  <!-- ============ fan control ============ -->
+  <section class="panel" id="fanPanel">
+    <div class="panel-head">
+      <h2>Fan control</h2>
+      <div class="reason" id="reason">–</div>
+    </div>
+
+    <div class="profiles" id="profileList" role="radiogroup" aria-label="Fan profile"></div>
+
+    <div class="editor">
+      <div class="editor-main">
+        <div class="editor-bar">
+          <label>Editing
+            <select id="editSelect"></select>
+          </label>
+          <label>Mode
+            <select id="editMode">
+              <option value="curve">Curve</option>
+              <option value="pid">PID</option>
+              <option value="fixed">Fixed</option>
+            </select>
+          </label>
+          <label class="grow">Name <input id="editName" maxlength="40"></label>
+        </div>
+
+        <div id="curveBox">
+          <div class="chart-wrap tall"><canvas id="curveChart" aria-label="Fan curve editor"></canvas></div>
+          <p class="hint">Drag points to change the curve. Double-click empty space to add a point, right-click a point to remove it.
+            The dashed line is the current temperature.</p>
+          <div class="row">
+            <label>Hysteresis <span><input type="number" id="editHyst" min="0" max="10" step="0.5"> °C</span></label>
+            <div class="points-table" id="pointsTable"></div>
+          </div>
+        </div>
+
+        <div id="pidBox" hidden>
+          <div class="grid-form">
+            <label>Target temperature <span><input type="number" id="pidTarget" step="0.5" min="20" max="60"> °C</span></label>
+            <label>Minimum fan <span><input type="number" id="pidMin" min="0" max="100"> %</span></label>
+            <label>Maximum fan <span><input type="number" id="pidMax" min="0" max="100"> %</span></label>
+            <label>Kp <span><input type="number" id="pidKp" step="0.5" min="0"></span></label>
+            <label>Ki <span><input type="number" id="pidKi" step="0.01" min="0"></span></label>
+            <label>Kd <span><input type="number" id="pidKd" step="0.5" min="0"></span></label>
+          </div>
+          <p class="hint">Kp: fan % added per °C above target. Ki: slowly adds more fan while the temperature stays above target.
+            Drives heat up slowly, so keep Ki small and Kd at 0 unless you know you need it.</p>
+        </div>
+
+        <div id="fixedBox" hidden>
+          <label class="slider">Fan speed
+            <input type="range" id="fixedPct" min="0" max="100">
+            <output id="fixedOut">–</output>
+          </label>
+        </div>
+
+        <div class="editor-actions">
+          <button class="btn primary" id="saveProfile">Save</button>
+          <button class="btn" id="saveAsProfile">Save as new…</button>
+          <button class="btn" id="activateProfile">Use this profile</button>
+          <span class="spacer"></span>
+          <button class="btn ghost danger-text" id="deleteProfile">Delete</button>
+        </div>
+      </div>
+
+      <aside class="override">
+        <h3>Manual override</h3>
+        <p class="hint">Temporarily set the fan speed, ignoring the profile.</p>
+        <label class="slider">Speed
+          <input type="range" id="ovPct" min="0" max="100" value="60">
+          <output id="ovOut">60%</output>
+        </label>
+        <label>For
+          <select id="ovMin">
+            <option value="5">5 minutes</option>
+            <option value="15" selected>15 minutes</option>
+            <option value="60">1 hour</option>
+            <option value="240">4 hours</option>
+          </select>
+        </label>
+        <div class="row">
+          <button class="btn" id="ovApply">Apply</button>
+          <button class="btn ghost" id="ovClear">Clear</button>
+        </div>
+        <div class="note" id="ovState"></div>
+      </aside>
+    </div>
+  </section>
+  </div>
+</main>
+
+<footer><span id="version"></span></footer>
+
+<dialog id="confirmDlg">
+  <form method="dialog">
+    <h3 id="confirmTitle">Are you sure?</h3>
+    <p id="confirmText"></p>
+    <div class="row end">
+      <button class="btn" value="cancel">Cancel</button>
+      <button class="btn danger" value="ok" id="confirmOk">Confirm</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="/static/chart.umd.min.js"></script>
+<script src="/static/app.js?v=1.2.0"></script>
+</body>
+</html>
