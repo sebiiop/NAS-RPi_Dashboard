@@ -36,7 +36,8 @@ SESSION_LONG = 30 * 24 * 3600   # with it
 
 def create_app(config: Config, mock: bool = False) -> FastAPI:
     if mock:
-        from .hardware import MockDrives, MockFan, System
+        from .hardware import MockDrives, MockFan
+        from .hardware import MockSystem as System
 
         fan, drives = MockFan(), MockDrives()
     else:
@@ -49,6 +50,8 @@ def create_app(config: Config, mock: bool = False) -> FastAPI:
             fan = BrokenFan(f"{type(exc).__name__}: {exc}")
         drives = Drives()
     controller = Controller(config, fan, drives, System())
+    if mock:
+        controller.prefill_demo_history(minutes=60)
 
     @asynccontextmanager
     async def lifespan(app):

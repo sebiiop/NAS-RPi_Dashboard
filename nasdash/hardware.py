@@ -434,3 +434,49 @@ class System:
             },
             "mounts": mounts,
         }
+
+
+class MockSystem:
+    """Simulated Raspberry Pi 5, so demo mode looks like a real NAS
+    instead of whatever computer it happens to run on."""
+
+    def __init__(self):
+        self.t0 = time.time()
+        self.boot = time.time() - 3 * 86400 - 5 * 3600
+
+    def read(self) -> dict:
+        t = time.time() - self.t0
+        load = max(1.0, 6 + 5 * math.sin(t / 90) + random.random() * 6)
+        cores = [max(0.0, min(100.0, load + random.uniform(-4, 6))) for _ in range(4)]
+        tb = 1_000_000_000_000
+        return {
+            "hostname": "nas",
+            "model": "Raspberry Pi 5 Model B Rev 1.0",
+            "os": "Debian GNU/Linux 13 (trixie)",
+            "kernel": "6.12.47+rpt-rpi-2712",
+            "arch": "aarch64",
+            "cpu_count": 4,
+            "boot_time": self.boot,
+            "ips": ["192.168.1.50 (eth0)"],
+            "uptime_s": time.time() - self.boot,
+            "load": [round(load / 25, 2), round(load / 28, 2), round(load / 30, 2)],
+            "cpu_percent": round(sum(cores) / 4, 1),
+            "cpu_per_core": [round(c, 1) for c in cores],
+            "cpu_freq_mhz": 2400 if load > 10 else 1500,
+            "cpu_temp": round(46 + load / 4 + random.random(), 1),
+            "throttled": {"raw": "0x0", "flags": []},
+            "mem": {"total": 8 * 1024**3, "used": int((1.6 + 0.1 * math.sin(t / 300)) * 1024**3), "percent": round(20 + math.sin(t / 300), 1)},
+            "swap": {"total": 2 * 1024**3, "used": 0, "percent": 0.0},
+            "net": {
+                "rx_rate": max(0.0, 40e3 + 30e3 * math.sin(t / 40) + random.random() * 20e3),
+                "tx_rate": max(0.0, 2.4e6 + 4e5 * math.sin(t / 60) + random.random() * 2e5),
+                "rx_total": int(380e9 + t * 5e4),
+                "tx_total": int(1.2e12 + t * 2.4e6),
+            },
+            "mounts": [
+                {"device": "/dev/mmcblk0p2", "mount": "/", "fstype": "ext4", "total": 31 * 10**9, "used": int(8.2 * 10**9), "percent": 28.0},
+                {"device": "/dev/sdb", "mount": "/srv/backup", "fstype": "btrfs", "total": int(8.0 * tb), "used": int(3.1 * tb), "percent": 38.8},
+                {"device": "/dev/sda1", "mount": "/srv/media", "fstype": "ext4", "total": int(4.0 * tb), "used": int(2.9 * tb), "percent": 72.5},
+                {"device": "/dev/sdd1", "mount": "/srv/apps", "fstype": "ext4", "total": int(1.0 * tb), "used": int(0.18 * tb), "percent": 18.0},
+            ],
+        }

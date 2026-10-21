@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+env/
+
+# Local configs and test data (contain password hashes and session keys)
+config.json
+*-config.json
+*.tmp
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Archives and private notes
+*.tar.gz
+*.zip
+NAS-Backup-Manual.md

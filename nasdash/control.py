@@ -335,6 +335,47 @@ class Controller:
                 "system": dict(self.sys_data),
             }
 
+    def prefill_demo_history(self, minutes: int = 60):
+        """Mock mode only: invent the last hour of samples so the charts aren't empty."""
+        import math
+        import random
+
+        now = time.time()
+        step = max(1, self.config.get()["control"]["interval_s"])
+        names = ["sda", "sdb", "sdc", "sdd"]
+        with self.lock:
+            for i in range(int(minutes * 60 / step), 0, -1):
+                t = now - i * step
+                m = t / 60
+                backup = (minutes - i * step / 60) > 25  # a backup started 35 minutes ago and is still running
+                temps = {
+                    "sda": 34 + 2 * math.sin(m / 9) + random.random() * 0.3,
+                    "sdb": 35 + (4 if backup else 0) + random.random() * 0.3,
+                    "sdc": 36 + (4 if backup else 0) + random.random() * 0.3,
+                    "sdd": 30 + math.sin(m / 7) + random.random() * 0.3,
+                }
+                hottest = max(temps.values())
+                fan = max(25, min(100, 25 + (hottest - 30) * 5.5))
+                io = {
+                    "sda": [random.choice([0, 0, 0, 0, 2.5e6, 9e6]), random.choice([0, 0, 30e3])],
+                    "sdb": [random.random() * 1e5, (2.0e6 + random.random() * 4e5) if backup else 0],
+                    "sdc": [random.random() * 1e5, (2.0e6 + random.random() * 4e5) if backup else 0],
+                    "sdd": [random.choice([0, 0, 2e5]), random.choice([0, 0, 0, 12e3])],
+                }
+                self.history.append({
+                    "t": t,
+                    "fan": round(fan, 1),
+                    "rpm": int(300 + 15 * fan),
+                    "temp": round(hottest, 1),
+                    "cpu": round(48 + 3 * math.sin(m / 5) + random.random(), 1),
+                    "load": round(max(1, 7 + 5 * math.sin(m / 3) + random.random() * 4), 1),
+                    "mem": round(20 + math.sin(m / 11), 1),
+                    "rx": max(0, 40e3 + 30e3 * math.sin(m) + random.random() * 2e4),
+                    "tx": (2.4e6 + random.random() * 3e5) if backup else random.random() * 6e4,
+                    "drives": {n: round(v, 1) for n, v in temps.items()},
+                    "io": {n: [round(r), round(w)] for n, (r, w) in io.items() if n in names},
+                })
+
     def _drive_view(self, d: dict) -> dict:
         v = dict(d)
         now = time.time()
