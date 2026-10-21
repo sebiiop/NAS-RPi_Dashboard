@@ -2,11 +2,6 @@
 
 A web dashboard and fan controller for a Raspberry Pi 5 NAS. It shows the state of the Pi and its drives, controls the case fan through an **EMC2101** based on the drive temperatures, and spins idle hard drives down.
 
-> [!NOTE]
-> **This project was written by an AI.** The code, this README and the screenshots were created by **Claude**, an AI model by Anthropic, in a conversation with me ([@sebiiop](https://github.com/sebiiop)). I described what I wanted, ran it on my own Raspberry Pi 5 NAS, and reported the bugs; Claude wrote and fixed the code.
->
-> Please read through the code before running it on your own system, especially the installer and the parts that run with `sudo`.
-
 ![Dashboard](docs/dashboard.png)
 
 <sub>Screenshots use simulated drives and a simulated fan (mock mode).</sub>
@@ -275,10 +270,6 @@ NAS-RPi_Dashboard/
 ## Disclaimer
 
 This project controls your fan and can spin drives down and power off your Pi. Watch the temperatures for a while after installing, and check that the fail-safe behaves as you expect. Use at your own risk.
-
-## Credits
-
-Written by Claude (Anthropic) together with [@sebiiop](https://github.com/sebiiop). See the note at the top.
 
 ## License
 
